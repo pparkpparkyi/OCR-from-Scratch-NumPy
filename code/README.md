@@ -1,67 +1,89 @@
-## 1\. 파일 구조 및 역할
+# 📂 code — Implementation Details for OCR-from-Scratch-NumPy
 
-총 5개의 Python 파일(`.py`)과 1개의 실행 파일(`main.py`)로 구성하는 것을 권장합니다.
+이 폴더는 **딥러닝 프레임워크 없이 NumPy만으로 구현한 OCR 모델**의  
+전체 학습 파이프라인을 구성하는 소스 코드 모음입니다.
 
+---
+
+## 🧱 전체 구성
+
+| 파일명 | 설명 |
+|--------|------|
+| `preprocess.py` | AI Hub 손글씨 OCR 원본 ZIP 데이터를 BBox 단위로 크롭하여 `(32×32)` 크기의 학습용 이미지·라벨 세트로 변환합니다. |
+| `dataset.py` | 전처리된 이미지를 불러오고, `.txt` 라벨을 **정수 시퀀스**로 변환합니다. (CTCLoss용 blank token 포함) |
+| `layer.py` | Conv2D, ReLU, MaxPooling, Linear 등 **기초 신경망 레이어**를 NumPy로 직접 구현합니다. |
+| `rnn.py` | Simple RNN (Recurrent Neural Network) 레이어와 BPTT(Backpropagation Through Time)를 직접 구현합니다. |
+| `model.py` | CNN + RNN + Linear 구조로 구성된 **CRNN (Convolutional Recurrent Neural Network)** 모델 정의. |
+| `loss.py` | **CTCLoss(Connectionist Temporal Classification)** 를 NumPy 기반 동적 프로그래밍(DP)으로 구현합니다. |
+| `main.py` | 모델 학습 및 평가 스크립트. Optimizer, 손실 계산, 역전파, 파라미터 업데이트 등을 수행합니다. |
+| `img_diagram.py` | 모델 구조(입력 → CNN → RNN → Linear → CTC) 시각화용 다이어그램 생성 코드입니다. |
+| `verify_preprocess.py` | `preprocess.py` 결과 이미지·라벨 쌍의 정상 여부를 검사하는 유효성 검증 스크립트입니다. |
+
+---
+
+## ⚙️ 실행 순서
+
+1️⃣ **데이터 전처리**
+```bash
+python preprocess.py
 ```
-/DL_OCR_Project
-|
-+-- layer.py             # 기본 레이어 (Conv, ReLU, Pool, Linear) 정의
-+-- rnn.py               # RNN/LSTM 시퀀스 레이어 정의
-+-- loss.py              # CTC Loss 함수 정의
-+-- model.py             # 전체 CNN-RNN 모델 구조 정의 및 조합
-+-- dataset.py           # 데이터 로딩 및 전처리 (이미지 로드, 라벨 인코딩)
-+-- main.py              # 학습(Training) 및 평가(Evaluation) 실행
+
+→ `data/train/images/` & `data/train/labels/` 생성
+
+2️⃣ **데이터셋 로딩**
+
+```python
+from dataset import OCRDataset
+dataset = OCRDataset('./data/train')
+x_batch, y_batch = dataset.get_batch(32)
 ```
 
------
+3️⃣ **모델 학습**
 
-## 2\. 파일별 코드 설명 (Classes & Methods)
+```bash
+python main.py
+```
 
-### 1\. `dataset.py`: 데이터 로딩 및 전처리
+→ CNN + RNN + CTC 기반 모델 학습 시작
+→ Epoch별 loss 출력 및 수렴 확인
 
-| 클래스/함수 | 설명 | 주요 Numpy 작업 |
-| :--- | :--- | :--- |
-| `CharTokenizer` | 텍스트 라벨을 정수 시퀀스로 변환 | 어휘 집합(Vocabulary) 구축 및 텍스트 $\leftrightarrow$ 인덱스 매핑 테이블 생성. CTC용 **Blank 토큰** 추가. |
-| `OCRDataset` | 이미지와 라벨을 로드하고 전처리 | 1. **PIL/OpenCV**를 이용한 이미지 로드 및 **Numpy 배열** 변환. 2. 이미지 **Grayscale 변환**, **정규화**($0 \sim 1$). 3. 이미지 **크롭/리사이즈/패딩**으로 통일. 4. `CharTokenizer`로 텍스트 라벨 인코딩 및 패딩. |
-| `DataLoader` | 배치(Batch) 단위로 데이터를 제공 | `OCRDataset` 객체를 받아 데이터를 미니배치 단위로 묶어 제공하며, 필요시 데이터 셔플(Shuffle) 기능 구현. |
+4️⃣ **결과 확인**
 
-### 2\. `layer.py`: 핵심 딥러닝 레이어 (Numpy 전용)
+* 학습 로그 출력
+* CTCLoss 정렬 확인 (blank 제거)
+* 모델 예측 → 디코딩 후 “문자열” 출력
 
-| 클래스 | 메서드 | 설명 |
-| :--- | :--- | :--- |
-| `Layer` (Base) | `forward(X)`, `backward(dL_dA)` | 모든 레이어의 기본 틀 (상속용). |
-| `Conv2D` | `forward(X)`, `backward(dL_dZ)` | **합성곱** 연산 구현. `im2col` 또는 직접 루프를 사용한 효율적인 순전파/역전파, 가중치/편향 업데이트용 기울기 계산. |
-| `ReLU` | `forward(Z)`, `backward(dL_dA)` | $A = \max(0, Z)$ 순전파 및 $Z>0$ 일 때만 기울기 전달하는 역전파 구현. |
-| `MaxPool` | `forward(X)`, `backward(dL_dZ)` | 풀링 영역 내 **최댓값** 추출 및 순전파 시 최댓값 위치를 저장하여 역전파 때 사용. |
-| `Linear` (Dense) | `forward(X)`, `backward(dL_dZ)` | $Z = XW + b$ 행렬 곱셈 순전파 및 $W, b, X$에 대한 기울기 계산. |
-| `Softmax` | `forward(Z)`, `backward(dL_dA)` | 최종 출력에서 각 클래스(문자) 확률 계산. (보통 Cross-Entropy Loss와 결합되지만, 여기서는 CTC와 함께 사용). |
+---
 
-### 3\. `rnn.py`: 시퀀스 처리 레이어 (Numpy 전용)
+## 🧩 주요 구현 특징
 
-| 클래스 | 메서드 | 설명 |
-| :--- | :--- | :--- |
-| `LSTMCell` | `forward(X_t, h_t_prev, c_t_prev)` | 하나의 시퀀스 스텝($t$)에서 **LSTM의 게이트 및 상태 업데이트** 로직 구현. (입력, 망각, 출력, 셀 게이트) |
-| `LSTM` | `forward(X)`, `backward(dL_dA)` | 전체 시퀀스에 대해 `LSTMCell`을 시간 축으로 반복 적용(`for` 루프). \*\*BPTT (Backpropagation Through Time)\*\*를 위한 역전파 구현. |
+* **모든 Forward/Backward 연산 NumPy로 직접 구현**
+* **im2col / col2im**을 활용한 합성곱 최적화
+* **CTCLoss**로 가변 길이 시퀀스 정렬 문제 해결
+* **Bridge Layer (Reshape)** 로 CNN의 2D 출력을 RNN 입력 시퀀스로 변환
+* **모듈화 설계:** 모든 구성요소가 독립적으로 import 가능
 
-### 4\. `loss.py`: 손실 함수 (Numpy 전용)
+---
 
-| 클래스/함수 | 메서드 | 설명 |
-| :--- | :--- | :--- |
-| `CTCLoss` | `forward(Y, T)`, `backward()` | **CTC (Connectionist Temporal Classification) Loss** 계산. |
-| | | 1. **Forward-Backward** 알고리즘을 이용한 $\log(\text{likelihood})$ (손실값) 계산. |
-| | | 2. **알파-베타 경로**를 이용해 출력($Y$)에 대한 최종 기울기 $\partial L/\partial Y$ 계산. (Numpy 구현의 핵심 난이도) |
+## 📈 출력 예시
 
-### 5\. `model.py`: 모델 구조 결합
+| 입력 이미지             | 예측 시퀀스            | 디코딩 결과 |
+| ------------------ | ----------------- | ------ |
+| handwritten_01.png | `[ㄷ, ㅐ, ㄱ, ㅜ, _]` | “대구”   |
+| handwritten_02.png | `[ㅅ, ㅜ, _]`       | “수”    |
 
-| 클래스 | 메서드 | 설명 |
-| :--- | :--- | :--- |
-| `OCRModel` | `__init__`, `forward(X)`, `update_params()` | `layer.py`의 `Conv2D`, `ReLU`, `MaxPool`과 `rnn.py`의 `LSTM`, `Linear` 레이어를 **순서대로 조합**하여 전체 CNN-RNN 아키텍처 정의. |
+---
 
-### 6\. `main.py`: 실행 파일
+## 📚 참고
 
-| 함수 | 설명 |
-| :--- | :--- |
-| `train()` | **데이터 로드, 모델 초기화, 옵티마이저 정의.** 학습 루프(`for epoch`): 순전파, `CTCLoss` 계산, 역전파, 파라미터 업데이트(`Optimizer`). |
-| `evaluate()` | `2.Validation` 데이터셋을 사용하여 최종 성능 측정. **CTC 디코딩** (예: Best Path Decodng)을 구현하여 예측된 텍스트와 실제 라벨 비교. |
+* **데이터:** AI Hub 「대용량 손글씨 OCR 데이터셋」
+* **구현 논문:**
 
-**주의:** Numpy로 구현할 때는 `main.py`에 별도의 **`Optimizer` 클래스** (예: `SGD` 또는 `Adam`)를 정의하여 `model.py`에서 계산된 기울기를 바탕으로 가중치를 업데이트하는 로직을 구현해야 합니다.
+  * Graves et al., *Connectionist Temporal Classification*, ICML 2006
+  * Shi et al., *Scene Text Recognition with CRNN*, TPAMI 2017
+
+---
+
+📍**참고:**
+이 `code/` 폴더는 독립적으로 import 가능하며,
+`main.py`에서 모든 모듈을 통합하여 학습 파이프라인을 실행합니다.
