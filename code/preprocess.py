@@ -11,12 +11,12 @@ from tqdm import tqdm # (터미널에 'pip install tqdm' 실행 필요)
 # [학습용]
 #TRAIN_IMG_TS6_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터/1.Training/원천데이터/TS6.zip"
 #TRAIN_IMG_TS7_ZIP = #r"053.대용량 손글씨 OCR 데이터/01.데이터/1.Training/원천데이터/TS7.zip" # (나중에 다운되면 경로 추가)
-TRAIN_IMG_TS8_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터//1.Training/원천데이터/TS8.zip" # (나중에 다운되면 경로 추가)
-TRAIN_LBL_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터//1.Training/라벨링데이터/TL.zip"
+#TRAIN_IMG_TS8_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터//1.Training/원천데이터/TS8.zip" # (나중에 다운되면 경로 추가)
+#TRAIN_LBL_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터//1.Training/라벨링데이터/TL.zip"
 
 # [검증용]
-# VALID_IMG_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터/2.Validation/원천데이터/경로/VS.zip" # (나중에 다운되면 경로 추가)
-#VALID_LBL_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터/2.Validation/라벨링데이터/VL.zip"
+VALID_IMG_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터/2.Validation/원천데이터/VS.zip" # (나중에 다운되면 경로 추가)
+VALID_LBL_ZIP = r"053.대용량 손글씨 OCR 데이터/01.데이터/2.Validation/라벨링데이터/VL.zip"
 
 # [출력 폴더]
 OUTPUT_TRAIN_DIR = './data/train'
@@ -112,20 +112,20 @@ if __name__ == "__main__":
     print("데이터 전처리를 시작합니다...")
     
     # --- 1. 학습 데이터 (TS6) 처리 ---
-    if os.path.exists(TRAIN_IMG_TS8_ZIP) and os.path.exists(TRAIN_LBL_ZIP):
-        process_zip(TRAIN_IMG_TS8_ZIP, TRAIN_LBL_ZIP, OUTPUT_TRAIN_DIR)
-    else:
-        print("Warning: TS6.zip 또는 TL.zip 경로를 찾을 수 없습니다. (경로 확인 필요)")
+    #if os.path.exists(TRAIN_IMG_TS8_ZIP) and os.path.exists(TRAIN_LBL_ZIP):
+    #    process_zip(TRAIN_IMG_TS8_ZIP, TRAIN_LBL_ZIP, OUTPUT_TRAIN_DIR)
+    #else:
+    #    print("Warning: TS6.zip 또는 TL.zip 경로를 찾을 수 없습니다. (경로 확인 필요)")
 
     # --- 2. 나중에 추가할 파일들 안내 ---
-    print("\n--- 향후 작업 안내 ---")
-    print("TS7.zip, TS8.zip이 다운로드되면, 스크립트 상단 경로를 수정하고 다시 실행하세요.")
-    print("  -> data/train 폴더에 파일이 *추가*됩니다.")
+    #print("\n--- 향후 작업 안내 ---")
+    #print("TS7.zip, TS8.zip이 다운로드되면, 스크립트 상단 경로를 수정하고 다시 실행하세요.")
+    #print("  -> data/train 폴더에 파일이 *추가*됩니다.")
     
-    print("\nVS.zip(검증용 이미지)이 다운로드되면, 아래 코드를 활성화하세요.")
-    # if os.path.exists(VALID_IMG_ZIP) and os.path.exists(VALID_LBL_ZIP):
-    #     process_zip(VALID_IMG_ZIP, VALID_LBL_ZIP, OUTPUT_VALID_DIR)
-    # else:
-    #     print("Warning: VS.zip 또는 VL.zip 경로를 찾을 수 없습니다.")
+    #print("\nVS.zip(검증용 이미지)이 다운로드되면, 아래 코드를 활성화하세요.")
+    if os.path.exists(VALID_IMG_ZIP) and os.path.exists(VALID_LBL_ZIP):
+        process_zip(VALID_IMG_ZIP, VALID_LBL_ZIP, OUTPUT_VALID_DIR)
+    else:
+        print("Warning: VS.zip 또는 VL.zip 경로를 찾을 수 없습니다.")
 
     print("\n모든 작업 완료!")

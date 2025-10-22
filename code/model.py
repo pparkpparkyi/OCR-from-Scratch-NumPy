@@ -4,7 +4,8 @@ import numpy as np
 # ⚠️ layer.py와 rnn.py, loss.py가 동일한 폴더에 있다고 가정합니다.
 from layer import Conv2D, ReLU, MaxPooling2D, Linear, Softmax
 from rnn import RNNLayer
-from loss import CrossEntropyLoss # (이것은 나중에 CTCLoss로 교체될 것입니다)
+# [수정 1] CrossEntropyLoss -> CTCLoss로 임포트 변경
+from loss import CTCLoss
 
 class OCRModel:
     """CNN + RNN 기반 OCR 모델 (시퀀스 처리 버전)"""
@@ -34,8 +35,8 @@ class OCRModel:
         # [수정 2] Softmax 레이어 제거
         # self.softmax = Softmax() # (CTCLoss가 Softmax를 포함하므로 제거)
         
-        # 손실 함수 (임시. 나중에 CTCLoss로 교체)
-        self.loss_layer = CrossEntropyLoss()
+        # [수정 3] 손실 함수 기본값을 CTCLoss로 변경
+        self.loss_layer = CTCLoss(blank_label=0)
         
         self.layers = [
             self.conv1, self.relu1, self.pool1,
@@ -83,22 +84,18 @@ class OCRModel:
     def loss(self, x, t):
         """
         손실 계산
-        (⚠️ 경고: 이 함수는 CTCLoss로 교체되어야 정상 작동합니다)
         """
         y = self.forward(x)
         
-        # 임시 코드 (작동하지 않음)
-        # CTCLoss는 (N, T, C)와 (N, L) (시퀀스)를 입력받아야 합니다.
-        # return self.loss_layer.forward(y, t) 
-        print("⚠️ 'loss' 함수는 CTCLoss로 구현되어야 합니다.")
-        return None # 임시
+        # [수정 4] CTCLoss를 호출하도록 수정 (None 반환 대신)
+        # CTCLoss는 y (N, T, C)와 t (레이블 리스트)를 입력받습니다.
+        return self.loss_layer.forward(y, t) 
     
     def backward(self):
         """
         역전파
-        (⚠️ 경고: loss_layer.backward()는 CTCLoss의 역전파여야 합니다)
         """
-        # 1. (가정) CTCLoss로부터 역전파 시작
+        # 1. CTCLoss로부터 역전파 시작
         dout = self.loss_layer.backward() # (N, 8, num_classes)
         
         # [수정 5] Softmax 역전파 제거
@@ -133,7 +130,6 @@ class OCRModel:
         
         # [수정 7] self.rnn.rnn -> self.rnn 으로 수정 (RNNLayer가 rnn 객체를 가짐)
         # (rnn.py 구현에 따라 다름)
-        # 원본 코드가 self.rnn.rnn을 참조했다면 그대로 둡니다.
         # 원본 코드를 보니 self.rnn.rnn, self.fc가 맞네요. 유지합니다.
         
         for layer in [self.conv1, self.conv2, self.rnn.rnn, self.fc]:
