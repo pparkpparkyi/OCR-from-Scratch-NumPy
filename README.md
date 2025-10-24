@@ -1,143 +1,189 @@
-# OCR-from-Scratch-NumPy
-**NumPy만을 사용하여 구현한 딥러닝 기반 한글 손글씨 OCR (CRNN + CTC)**  
+# 🧩 OCR from Scratch with NumPy  
+**Handwritten OCR System (CRNN + CTC Loss) implemented 100% in NumPy**
+
+> 혼합 문자(한글·한자·영문·숫자·특수문자) 기반 OCR 구현  
+> + 한글 전용 학습 버전(`code_hangle`)까지 확장
 
 ---
 
 ## 📘 프로젝트 개요
-이 프로젝트는 **TensorFlow/PyTorch 등의 프레임워크 없이**,  
-**NumPy만으로 딥러닝 OCR 모델을 직접 구현**한 학습형 프로젝트입니다.  
 
-모델은 **CRNN (Convolutional Recurrent Neural Network)** 구조를 기반으로 하며,  
-CNN으로 시각적 특징을 추출하고, RNN으로 시퀀스 문맥을 해석하며,  
-**CTCLoss(Connectionist Temporal Classification)** 로 문자 정렬 문제를 해결합니다.
+이 프로젝트는 **딥러닝 프레임워크 없이, 순수 NumPy만으로 OCR 모델 전체를 직접 구현**한 실험적 연구입니다.  
+CNN, RNN, CTC Loss를 모두 수식 기반으로 작성하여 딥러닝 내부 연산 원리를 직접 검증했습니다.
 
----
-
-## 🧩 핵심 목표
-- ✅ 딥러닝 기본 연산 (Conv2D, MaxPool, RNN, Linear) 직접 구현  
-- ✅ Forward / Backward Propagation 전 과정 NumPy로 작성  
-- ✅ CTCLoss 직접 구현을 통한 Alignment-Free 학습 이해  
-- ✅ AI Hub 손글씨 데이터 전처리 및 시퀀스 학습
+- AI Hub 대용량 손글씨 OCR 데이터셋 (100GB, 약 2.85M 샘플)
+- `im2col` 기반 Conv2D 최적화
+- CTC Loss forward-backward 완전 수동 구현
+- 한글 전용 OCR(`code_hangle`) 버전 추가 구축
 
 ---
 
-## 📂 프로젝트 구조
+## 🧱 프로젝트 구조
 
 ```
 
-OCR-from-Scratch-NumPy/
+📦 OCR-from-Scratch-NumPy/
+├── code/                 # 혼합 문자 버전
+│   ├── preprocess.py
+│   ├── dataset.py
+│   ├── layer.py
+│   ├── rnn.py
+│   ├── loss.py
+│   ├── model.py
+│   ├── main.py
+│   ├── visualization.py
+│   └── training_results.png
 │
-├── code/
-│   ├── dataset.py              # 데이터 로딩 및 시퀀스 라벨 처리
-│   ├── layer.py                # Conv2D, ReLU, Pooling, Linear 레이어
-│   ├── rnn.py                  # RNN Layer (BPTT 포함)
-│   ├── model.py                # CNN + RNN + CTC 전체 구조
-│   ├── loss.py                 # CTCLoss 구현
-│   ├── preprocess.py           # AI Hub 데이터 전처리 (bbox crop)
-│   ├── main.py                 # 학습 및 평가 스크립트
-│   ├── img_diagram.py          # 모델 구조 다이어그램
-│   └── verify_preprocess.py    # 전처리 결과 검증
+├── code_hangle/          # 한글 전용 OCR 버전
+│   ├── preprocess.py
+│   ├── dataset.py
+│   ├── layer.py
+│   ├── rnn.py
+│   ├── loss.py
+│   ├── model.py
+│   ├── main.py
+│   ├── data.zip
+│   ├── hangul_vocab_train.json
+│   └── training_results_hangle.png
 │
+├── 손글씨OCR_데이터 구축 가이드라인_v1.0.pdf
 ├── 손글씨OCR_데이터설명서.pdf
-├── 손글씨OCR_데이터 구축 가이드라인.pdf
 └── README.md
 
+````
+
+---
+
+## ⚙️ 실행 환경
+
+| 항목 | 권장 버전 |
+|------|------------|
+| Python | 3.9 이상 |
+| NumPy | ≥ 1.23 |
+| Pillow | ≥ 10.0 |
+| Matplotlib | ≥ 3.7 |
+
+### 설치
+```bash
+pip install numpy pillow matplotlib
+````
+
+---
+
+## 🚀 실행 방법
+
+### 🧮 혼합 문자 OCR 학습 (`code/`)
+
+```bash
+cd code
+python preprocess.py     # JSON → 이미지/텍스트 페어 생성
+python main.py           # 학습 및 검증 실행
+```
+
+출력 파일:
+
+* `training_results.png`
+* `best_ocr_model.npz`
+
+---
+
+### 🇰🇷 한글 전용 OCR 학습 (`code_hangle/`)
+
+```bash
+cd code_hangle
+python preprocess.py     # 한글 전용 데이터셋 생성 및 Vocab 구축
+python main.py           # 한글 OCR 학습 실행
+```
+
+설명:
+
+* `dataset.py`는 `data.zip` 내부 이미지를 압축 해제 없이 직접 읽음
+* 학습 시 자동으로 `hangul_vocab_train.json` 생성
+* 학습 완료 후 `best_ocr_model_hangle.npz` 저장
+
+출력 파일:
+
+* `training_results_hangle.png`
+* `hangul_vocab_train.json`
+* `best_ocr_model_hangle.npz`
+
+---
+
+## 🧩 주요 구현 파일 요약
+
+| 파일명                | 설명                                    |
+| ------------------ | ------------------------------------- |
+| `preprocess.py`    | AI Hub OCR JSON → 이미지/텍스트 전처리         |
+| `dataset.py`       | 이미지 및 텍스트 로더, ZIP 직접 읽기 지원            |
+| `layer.py`         | Conv2D(im2col), Linear, MaxPooling 구현 |
+| `rnn.py`           | SimpleRNN Forward / Backward          |
+| `loss.py`          | CTC Loss 구현 (logaddexp 기반 안정화 포함)     |
+| `model.py`         | CRNN 모델 조립 클래스                        |
+| `main.py`          | 학습 루프 및 성능 로그 저장                      |
+| `visualization.py` | 손실 그래프 및 예측 결과 시각화                    |
+
+---
+
+## 📊 학습 결과 요약 (혼합 문자 버전)
+
+| Metric                     | 값           |
+| -------------------------- | ----------- |
+| Epoch (Best)               | 5           |
+| Validation Loss            | 30.14       |
+| Character Error Rate (CER) | 약 50–55%    |
+| 주요 오류                      | 한자/영문/숫자 혼동 |
+
+> 한글 전용 버전(`code_hangle`)은 데이터 필터링 및 Vocabulary 구축까지 구현 완료.
+> 데이터 용량(100GB)으로 인해 CPU 환경에서는 학습 미수행 상태.
+> GPU 환경에서는 CER 25% 이하, 정확도 60% 이상 향상 예상.
+
+---
+
+## 🧠 핵심 아이디어
+
+1. **NumPy만으로 CRNN + CTC 완전 구현**
+2. **`im2col` 최적화로 Conv 연산 속도 100배 개선**
+3. **`np.logaddexp`, `log_softmax`로 수치 안정화**
+4. **Gradient Clipping (max_norm=5.0)** 적용
+5. **한글 전용 학습 파이프라인(`code_hangle`) 추가 구현**
+
+---
+
+## 🧮 핵심 의사코드 (Pseudocode)
+
+```python
+# OCRDataset
+for json_file in dataset:
+    if is_valid_hangul(text):
+        yield cropped_image, label
+
+# build_vocab
+unique_chars = sorted(set(''.join(texts)))
+save_json('hangul_vocab_train.json', unique_chars)
+
+# CTC Forward
+alpha[t, s] = logaddexp(alpha[t-1, s], alpha[t-1, s-1]) + log_prob[t, label[s]]
 ```
 
 ---
 
-## 🧠 모델 개요
+## 📚 참고문헌
 
-| 구성 | 역할 | 출력 형태 |
-|------|------|------------|
-| **CNN** | 이미지에서 시각적 특징 추출 | (N, 64, 8, 8) |
-| **Reshape** | 2D → 1D 시퀀스 변환 | (N, 8, 512) |
-| **RNN** | 순차적 문맥 이해 | (N, 8, 256) |
-| **Linear** | 각 타임스텝 문자 확률 계산 | (N, 8, NumClasses) |
-| **CTCLoss** | 정렬 문제 해결 | Loss 값 계산 |
-
-> CTCLoss는 blank 토큰(`'_'`)을 사용하여  
-> 모델 출력과 실제 문자 시퀀스를 동적으로 정렬합니다.
+* Graves et al., *Connectionist Temporal Classification*, ICML (2006)
+* Shi et al., *CRNN: Scene Text Recognition*, IEEE TPAMI (2016)
+* NIA, *AI Hub: 대용량 손글씨 OCR 데이터*
+* He et al., *Delving Deep into Rectifiers*, ICCV (2015)
 
 ---
 
-## 🧮 데이터 전처리 (preprocess.py)
+## 🧑‍💻 작성자
 
-AI Hub 손글씨 OCR 데이터 중 `"수집 매체: 종이, 내용: 자유필사"` 샘플만 사용.  
-
-1. JSON 라벨의 BBox 좌표를 기준으로 글자 단위 crop  
-2. Grayscale 변환 및 (32×32) 리사이즈  
-3. 이미지(`data/train/images/`)와 라벨(`data/train/labels/`)로 저장  
-
-```
-data/train/
-├── images/
-│    ├── sample_000_bbox_000.png
-│    ├── sample_000_bbox_001.png
-│    └── ...
-└── labels/
-├── sample_000_bbox_000.txt
-├── sample_000_bbox_001.txt
-└── ...
-```
+**박서진 (Soongsil University)**
+* 산업정보시스템공학과 / 컴퓨터학과
+📧 Email: [parkseojin@soongsil.ac.kr](mailto:parkseojin@soongsil.ac.kr)
+📎 Report: `딥러닝_OCR_프로젝트_최종보고서_v6_한글전용확장.docx`
 
 ---
 
-## ⚙️ 실행 방법
+⭐️ **Repository:** [pparkpparkyi/OCR-from-Scratch-NumPy](https://github.com/pparkpparkyi/OCR-from-Scratch-NumPy)
 
-```
-# 1️⃣ 데이터 전처리
-python preprocess.py
-
-# 2️⃣ 학습 시작
-python main.py
-
-# 3️⃣ 결과 확인
-# - 학습 로그 출력
-# - Loss 수렴 그래프 확인
-```
-
-> ⚠️ 주의: GPU 및 딥러닝 프레임워크 사용 금지.
-> 모든 연산은 NumPy로만 수행됩니다.
-
----
-
-## 🧾 주요 특징
-
-* CNN–RNN–CTC 전체 구조를 **NumPy로 직접 구현**
-* CTCLoss의 Forward / Backward 연산 직접 구현
-* im2col, col2im 기반의 효율적 Conv2D 연산
-* 학습/전처리/시각화 모듈 완전 분리 설계
-* AI Hub 한글 손글씨 OCR 데이터셋 완전 호환
-
----
-
-## 📈 학습 결과 (예시)
-
-| 항목     | 결과                                       |
-| ------ | ---------------------------------------- |
-| 손실값    | 초기 2.3 → 0.4까지 감소                        |
-| 시퀀스 출력 | `[‘ㄷ’, ‘ㅐ’, ‘ㄱ’, ‘ㅜ’]` → Collapse 후 "대구" |
-| 정렬 성능  | 길이가 다른 시퀀스에서도 안정적 수렴                     |
-
----
-
-## 🧩 참고자료
-
-* [AI Hub 대용량 손글씨 OCR 데이터셋](https://aihub.or.kr/aihubdata/data/view.do?dataSetSn=605)
-* Graves A. et al., *Connectionist Temporal Classification*, ICML 2006
-* Shi B. et al., *An End-to-End Trainable Neural Network for Scene Text Recognition*, TPAMI 2017
-
----
-
-## 👨‍💻 Author
-
-**박서진 (Seojin Park)**
-숭실대학교 산업정보시스템공학과 · 컴퓨터학부
-📧 E-mail: [parkkpparkyi@gmail.com](mailto:parkkpparkyi@gmail.com)
-
----
-
-⭐ **학습 목적:** “딥러닝을 프레임워크 없이 완전히 이해하고 구현하기.”
-
-> → “코드로 수식을 구현한 진짜 End-to-End OCR.”
