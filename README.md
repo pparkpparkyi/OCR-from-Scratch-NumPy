@@ -180,9 +180,7 @@ alpha[t, s] = logaddexp(alpha[t-1, s], alpha[t-1, s-1]) + log_prob[t, label[s]]
 
 **박서진 (Soongsil University)**
 * 산업정보시스템공학과 / 컴퓨터학과
-📧 Email: [parkseojin@soongsil.ac.kr](mailto:parkseojin@soongsil.ac.kr)
-📎 Report: `딥러닝_OCR_프로젝트_최종보고서_v6_한글전용확장.docx`
-
+📧 Email: [pokiki03@soongsil.ac.kr](mailto:parkseojin@soongsil.ac.kr)
 ---
 
 ⭐️ **Repository:** [pparkpparkyi/OCR-from-Scratch-NumPy](https://github.com/pparkpparkyi/OCR-from-Scratch-NumPy)
