@@ -23,6 +23,7 @@ CNN, RNN, CTC Loss를 모두 수식 기반으로 작성하여 딥러닝 내부 �
 ```
 
 📦 OCR-from-Scratch-NumPy/
+├── code_simple/          # 단순 버전
 ├── code/                 # 혼합 문자 버전
 │   ├── preprocess.py
 │   ├── dataset.py
