@@ -81,11 +81,6 @@ python preprocess.py     # JSON → 이미지/텍스트 페어 생성
 python main.py           # 학습 및 검증 실행
 ```
 
-출력 파일:
-
-* `training_results.png`
-* `best_ocr_model.npz`
-
 ---
 
 ### 🇰🇷 한글 전용 OCR 학습 (`code_hangle/`)
